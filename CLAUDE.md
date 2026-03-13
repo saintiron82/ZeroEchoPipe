@@ -40,7 +40,7 @@ twine upload dist/*                # PyPI 업로드 (API 토큰 필요)
 ## 핵심 명세 (zep-core-v0.1)
 
 - **스키마**: `zep.v0.1`
-- **Wire Format 2종**: JSONL (파일, LF 구분) / Frame (소켓, 4바이트 길이 접두사)
+- **Wire Format 2종**: Frame (Pipe/소켓, 4바이트 길이 접두사) / JSONL (파일, LF 구분)
 - **메시지 타입 4종**: `call`, `response`, `error`, `event`
 
 ### Envelope 필수 필드
@@ -134,7 +134,9 @@ ZeroEchoPipe/
         ├── test_conformance.py      # conformance unittest (38 subTests)
         ├── test_roundtrip.py        # peer 왕복 테스트 (6개)
         ├── test_scenario.py         # 시나리오 인터프리터 (4개)
-        ├── test_socket_transport.py # 소켓 + frame 코덱 테스트 (8개)
+        ├── test_pipe_transport.py   # Pipe Transport + connect 팩토리 (5개)
+        ├── test_tcp_transport.py    # TCP frame 코덱 + 왕복 (8개, 보조)
+        ├── test_uds_transport.py    # UDS 왕복 (3개, 보조, Unix/macOS)
         ├── test_peer_advanced.py    # 예약 메서드/라우팅 테스트 (6개)
         └── test_agent.py            # 에이전트 프레임워크 테스트 (6개)
 ```
@@ -153,7 +155,7 @@ ZeroEchoPipe/
 - [x] Python SDK BaseAgent (@method/@on_event 데코레이터, 양방향 통신)
 - [x] 테스트 베드 (38개 unittest, 단일 진입점)
 - [x] 패키징 (pyproject.toml, pip install zep-protocol)
-- [x] PyPI 배포 (v0.1.0)
+- [x] PyPI 배포 (v0.1.0 → v0.2.0 → v0.3.0)
 - [x] GitHub 저장소 + Pages 문서 사이트
 
 ### 미완료
