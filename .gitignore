@@ -8,6 +8,9 @@ build/
 .venv/
 *.egg
 
+# Temp
+t.txt
+
 # macOS
 .DS_Store
 
