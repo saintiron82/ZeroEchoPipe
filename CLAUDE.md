@@ -16,7 +16,7 @@ C++, Python, C#가 동일한 메시지를 읽고 쓰며, call-response 왕복을
 | GitHub | https://github.com/saintiron82/ZeroEchoPipe |
 | GitHub Pages | https://saintiron82.github.io/ZeroEchoPipe/ |
 | GitHub 계정 | `saintiron82` |
-| 현재 버전 | `0.3.0` |
+| 현재 버전 | `0.3.1` |
 
 ### 배포 방법
 
@@ -155,7 +155,7 @@ ZeroEchoPipe/
 - [x] Python SDK BaseAgent (@method/@on_event 데코레이터, 양방향 통신)
 - [x] 테스트 베드 (38개 unittest, 단일 진입점)
 - [x] 패키징 (pyproject.toml, pip install zep-protocol)
-- [x] PyPI 배포 (v0.1.0 → v0.2.0 → v0.3.0)
+- [x] PyPI 배포 (v0.1.0 → v0.2.0 → v0.3.0 → v0.3.1)
 - [x] GitHub 저장소 + Pages 문서 사이트
 
 ### 미완료

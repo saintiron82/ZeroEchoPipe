@@ -8,7 +8,7 @@ import sys
 if sys.platform != "win32":
     from .transport import PipeTransport
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 __all__ = [
     "parse", "validate", "serialize", "make_timestamp", "ValidationError", "SCHEMA",
     "Peer", "CallTimeout", "PeerNotFound", "RemoteError",
