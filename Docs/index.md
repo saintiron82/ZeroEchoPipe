@@ -9,7 +9,7 @@ title: ZEP — Zero Echo Pipe
 ## 설치
 
 ```bash
-pip install git+https://github.com/saintiron/ZeroEchoPipe.git#subdirectory=zep-py
+pip install zep-protocol
 ```
 
 ## 핵심 개념

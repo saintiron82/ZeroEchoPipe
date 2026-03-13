@@ -7,7 +7,7 @@ C++, Python, C#가 동일한 메시지를 읽고 쓰며, call-response 왕복을
 ## 설치
 
 ```bash
-pip install git+https://github.com/saintiron/ZeroEchoPipe.git#subdirectory=zep-py
+pip install zep-protocol
 ```
 
 ## 빠른 시작

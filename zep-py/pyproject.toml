@@ -3,15 +3,31 @@ requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "zep"
+name = "zep-protocol"
 version = "0.1.0"
-description = "ZEP — Zero Echo Pipe lightweight inter-program communication protocol"
+description = "ZEP — Zero Echo Pipe: lightweight inter-program communication protocol"
 requires-python = ">=3.10"
-license = {text = "MIT"}
-keywords = ["ipc", "protocol", "messaging", "agent"]
+license = "MIT"
+keywords = ["ipc", "protocol", "messaging", "agent", "rpc"]
+authors = [
+    {name = "zeroechosoft"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: System :: Networking",
+]
 
 [project.urls]
-Repository = "https://github.com/saintiron/ZeroEchoPipe"
+Homepage = "https://saintiron82.github.io/ZeroEchoPipe/"
+Repository = "https://github.com/saintiron82/ZeroEchoPipe"
+Documentation = "https://saintiron82.github.io/ZeroEchoPipe/"
 
 [tool.setuptools.packages.find]
 include = ["zep*"]
