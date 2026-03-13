@@ -139,9 +139,12 @@ class WinPipeTransport(BaseTransport):
             self._ensure_connected()
             messages = []
             try:
-                hr, data = win32file.ReadFile(self._client_pipe, 65536)
-                if data:
-                    self._recv_buffer += data
+                # PeekNamedPipe: non-blocking check - only ReadFile if data available
+                _, avail, _ = win32pipe.PeekNamedPipe(self._client_pipe, 0)
+                if avail > 0:
+                    hr, data = win32file.ReadFile(self._client_pipe, 65536)
+                    if data:
+                        self._recv_buffer += data
             except pywintypes.error:
                 return []
 
