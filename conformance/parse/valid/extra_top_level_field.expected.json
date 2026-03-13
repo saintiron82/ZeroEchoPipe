@@ -1,0 +1,15 @@
+{
+  "valid": true,
+  "note": "Unknown top-level fields MUST be accepted in permissive mode. Parsed output includes only spec-defined fields.",
+  "parsed": {
+    "id": "msg_extra_01",
+    "session": "sess_001",
+    "from": "program",
+    "to": "worker",
+    "type": "call",
+    "timestamp": "2026-03-11T12:00:00.000Z",
+    "meta": {"schema": "zep.v0.1"},
+    "method": "ping",
+    "params": {}
+  }
+}

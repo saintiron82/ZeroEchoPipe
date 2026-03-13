@@ -1,0 +1,1 @@
+{"valid":false,"error_code":"MALFORMED_MESSAGE","error_field":"timestamp","error_detail":"timestamp must match YYYY-MM-DDTHH:MM:SS.sssZ"}

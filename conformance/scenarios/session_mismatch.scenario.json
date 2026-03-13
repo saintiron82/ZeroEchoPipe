@@ -1,0 +1,61 @@
+{
+  "name": "session_mismatch",
+  "description": "Worker responds with a different session than the original call, program ignores the mismatched response",
+  "initial_state": {
+    "peers": ["program", "worker"]
+  },
+  "steps": [
+    {
+      "actor": "program",
+      "action": "send",
+      "message": {
+        "id": "m1",
+        "session": "s1",
+        "from": "program",
+        "to": "worker",
+        "type": "call",
+        "timestamp": "2026-03-11T12:00:00.000Z",
+        "meta": {"schema": "zep.v0.1"},
+        "method": "ping",
+        "params": {}
+      }
+    },
+    {
+      "actor": "program",
+      "assert_state": {
+        "pending_calls": {"m1": "pending"}
+      }
+    },
+    {
+      "actor": "worker",
+      "action": "receive",
+      "expect_message_id": "m1"
+    },
+    {
+      "actor": "worker",
+      "action": "send",
+      "message": {
+        "id": "m2",
+        "session": "wrong_session",
+        "from": "worker",
+        "to": "program",
+        "type": "response",
+        "timestamp": "2026-03-11T12:00:00.100Z",
+        "meta": {"schema": "zep.v0.1"},
+        "reply_to": "m1",
+        "result": {"ok": true}
+      }
+    },
+    {
+      "actor": "program",
+      "action": "receive",
+      "expect_message_id": "m2"
+    },
+    {
+      "actor": "program",
+      "assert_state": {
+        "pending_calls": {"m1": "pending"}
+      }
+    }
+  ]
+}

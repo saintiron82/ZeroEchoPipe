@@ -1,0 +1,37 @@
+{
+  "name": "timeout",
+  "description": "Program sends call with timeout_ms, worker never responds, program transitions to timeout state",
+  "initial_state": {
+    "peers": ["program", "worker"]
+  },
+  "steps": [
+    {
+      "actor": "program",
+      "action": "send",
+      "message": {
+        "id": "m1",
+        "session": "s1",
+        "from": "program",
+        "to": "worker",
+        "type": "call",
+        "timestamp": "2026-03-11T12:00:00.000Z",
+        "meta": {"schema": "zep.v0.1"},
+        "method": "slow_operation",
+        "params": {},
+        "timeout_ms": 500
+      }
+    },
+    {
+      "actor": "program",
+      "assert_state": {
+        "pending_calls": {"m1": "pending"}
+      }
+    },
+    {
+      "actor": "program",
+      "assert_state": {
+        "pending_calls": {"m1": "timeout"}
+      }
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "name": "unknown_method",
+  "description": "Program calls an unregistered method on worker, worker replies with METHOD_NOT_FOUND error",
+  "initial_state": {
+    "peers": ["program", "worker"]
+  },
+  "steps": [
+    {
+      "actor": "program",
+      "action": "send",
+      "message": {
+        "id": "m1",
+        "session": "s1",
+        "from": "program",
+        "to": "worker",
+        "type": "call",
+        "timestamp": "2026-03-11T12:00:00.000Z",
+        "meta": {"schema": "zep.v0.1"},
+        "method": "nonexistent_method",
+        "params": {}
+      }
+    },
+    {
+      "actor": "program",
+      "assert_state": {
+        "pending_calls": {"m1": "pending"}
+      }
+    },
+    {
+      "actor": "worker",
+      "action": "receive",
+      "expect_message_id": "m1"
+    },
+    {
+      "actor": "worker",
+      "action": "send",
+      "message": {
+        "id": "m2",
+        "session": "s1",
+        "from": "worker",
+        "to": "program",
+        "type": "error",
+        "timestamp": "2026-03-11T12:00:00.100Z",
+        "meta": {"schema": "zep.v0.1"},
+        "reply_to": "m1",
+        "error": {
+          "code": "METHOD_NOT_FOUND",
+          "message": "Unknown method: nonexistent_method",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "actor": "program",
+      "action": "receive",
+      "expect_message_id": "m2"
+    },
+    {
+      "actor": "program",
+      "assert_state": {
+        "pending_calls": {"m1": "failed"}
+      }
+    }
+  ]
+}

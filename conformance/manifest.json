@@ -1,0 +1,55 @@
+{
+  "version": "zep.v0.1",
+  "description": "AgentBus Protocol Conformance Test Suite v0.1",
+  "notes": {
+    "parse_valid": "입력 메시지를 파싱하여 expected와 의미적으로 동일한 객체가 되는지 검증",
+    "parse_invalid": "입력 메시지를 파싱 시 거부되어야 하며, expected의 에러 정보와 일치하는지 검증",
+    "serialize": "fields 입력을 직렬화하여 expected.jsonl과 문자열 완전 일치하는지 검증"
+  },
+  "suites": {
+    "parse_valid": [
+      "parse/valid/call_basic",
+      "parse/valid/call_with_timeout",
+      "parse/valid/call_empty_params",
+      "parse/valid/response_basic",
+      "parse/valid/response_scalar_result",
+      "parse/valid/response_null_result",
+      "parse/valid/error_basic",
+      "parse/valid/error_with_data",
+      "parse/valid/event_basic",
+      "parse/valid/extra_top_level_field"
+    ],
+    "parse_invalid": [
+      "parse/invalid/missing_id",
+      "parse/invalid/missing_session",
+      "parse/invalid/missing_from",
+      "parse/invalid/missing_to",
+      "parse/invalid/missing_type",
+      "parse/invalid/missing_timestamp",
+      "parse/invalid/missing_meta",
+      "parse/invalid/missing_meta_schema",
+      "parse/invalid/bad_timestamp_no_ms",
+      "parse/invalid/bad_timestamp_offset",
+      "parse/invalid/invalid_type_value",
+      "parse/invalid/response_missing_reply_to",
+      "parse/invalid/error_missing_code",
+      "parse/invalid/error_missing_retryable",
+      "parse/invalid/params_not_object",
+      "parse/invalid/params_is_array",
+      "parse/invalid/call_missing_method",
+      "parse/invalid/call_missing_params",
+      "parse/invalid/invalid_peer_name_uppercase",
+      "parse/invalid/invalid_peer_name_starts_digit",
+      "parse/invalid/invalid_method_name_hyphen"
+    ],
+    "serialize": [
+      "serialize/call_basic",
+      "serialize/call_with_timeout",
+      "serialize/response_basic",
+      "serialize/response_scalar_result",
+      "serialize/error_basic",
+      "serialize/error_with_data",
+      "serialize/event_basic"
+    ]
+  }
+}

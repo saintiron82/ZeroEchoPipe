@@ -1,0 +1,1 @@
+{"id":"msg_errd_01","session":"sess_001","from":"worker","to":"program","type":"error","timestamp":"2026-03-11T12:00:03.000Z","meta":{"schema":"zep.v0.1"},"reply_to":"msg_call_50","error":{"code":"INVALID_PARAMS","message":"Missing required field: name","retryable":false,"data":{"missing_fields":["name"],"provided_fields":["id","value"]}}}

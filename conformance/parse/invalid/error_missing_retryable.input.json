@@ -1,0 +1,1 @@
+{"id":"m1","session":"s1","from":"claude","to":"program","type":"error","timestamp":"2026-03-11T12:00:00.000Z","meta":{"schema":"zep.v0.1"},"reply_to":"m0","error":{"code":"INTERNAL_ERROR","message":"failed"}}

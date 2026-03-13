@@ -1,0 +1,1 @@
+{"id":"msg_err_01","session":"sess_001","from":"claude","to":"program","type":"error","timestamp":"2026-03-11T12:00:01.789Z","meta":{"schema":"zep.v0.1"},"reply_to":"msg_01HQX7YJ8M7F3A6T2K9P","error":{"code":"METHOD_NOT_FOUND","message":"Unknown method: analyze_v2","retryable":false}}
