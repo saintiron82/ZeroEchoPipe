@@ -16,7 +16,7 @@ C++, Python, C#가 동일한 메시지를 읽고 쓰며, call-response 왕복을
 | GitHub | https://github.com/saintiron82/ZeroEchoPipe |
 | GitHub Pages | https://saintiron82.github.io/ZeroEchoPipe/ |
 | GitHub 계정 | `saintiron82` |
-| 현재 버전 | `0.1.0` |
+| 현재 버전 | `0.2.0` |
 
 ### 배포 방법
 
@@ -120,10 +120,12 @@ ZeroEchoPipe/
     │   ├── peer.py                  # Peer (bind, call, emit, poll_once, reserved methods)
     │   ├── agent.py                 # BaseAgent + @method + @on_event 데코레이터
     │   └── transport/
-    │       ├── __init__.py          # FileTransport, SocketTransport export
+    │       ├── __init__.py          # export + connect() 자동 선택 팩토리
     │       ├── base.py              # BaseTransport ABC (send, recv, close)
-    │       ├── file.py              # FileTransport (sender-split inbox, JSONL)
-    │       └── socket.py            # SocketTransport (UDS, Frame Profile)
+    │       ├── tcp.py               # TcpTransport (TCP localhost, 크로스플랫폼)
+    │       ├── uds.py               # UdsTransport (Unix Domain Socket, Unix/macOS)
+    │       ├── winpipe.py           # WinPipeTransport (Named Pipe, Windows)
+    │       └── file.py              # FileTransport (JSONL, 크로스플랫폼 잠금)
     └── tests/
         ├── __init__.py              # 패키지화
         ├── __main__.py              # 단일 진입점: python -m tests
@@ -144,10 +146,13 @@ ZeroEchoPipe/
 - [x] Conformance Test Suite (parse 10 valid + 21 invalid + 7 serialize + 4 scenarios)
 - [x] Python SDK Message Layer (parse/validate/serialize)
 - [x] Python SDK Peer (bind/call/emit/poll_once + 예약 메서드 + 라우팅 검증)
-- [x] Python SDK FileTransport (sender-split inbox, JSONL)
-- [x] Python SDK SocketTransport (Unix Domain Socket, Frame Profile)
+- [x] Python SDK FileTransport (sender-split inbox, JSONL, 크로스플랫폼)
+- [x] Python SDK TcpTransport (TCP localhost, Frame Profile, 크로스플랫폼)
+- [x] Python SDK UdsTransport (Unix Domain Socket, Frame Profile)
+- [x] Python SDK WinPipeTransport (Windows Named Pipe, Frame Profile)
+- [x] Python SDK connect() 팩토리 (OS 자동 선택)
 - [x] Python SDK BaseAgent (@method/@on_event 데코레이터, 양방향 통신)
-- [x] 테스트 베드 (30개 unittest, 단일 진입점)
+- [x] 테스트 베드 (36개 unittest, 단일 진입점)
 - [x] 패키징 (pyproject.toml, pip install zep-protocol)
 - [x] PyPI 배포 (v0.1.0)
 - [x] GitHub 저장소 + Pages 문서 사이트
@@ -189,20 +194,49 @@ ZeroEchoPipe/
 - Frame: 4바이트 big-endian 길이 + JSON 바이트열
 - 최대 페이로드 권장 1MB
 
-### Transport 규칙
+### Transport 아키텍처
+
+ZEP 프로토콜(Frame Profile)은 하나, Transport 백엔드만 교체하는 구조.
+모든 백엔드는 `BaseTransport` ABC (`send`, `recv`, `close`)를 구현.
+
+```
+┌─────────────────────────────────┐
+│  ZEP Protocol (Frame Profile)   │  ← 프로토콜 하나
+├─────────────────────────────────┤
+│  BaseTransport ABC              │  ← 추상 인터페이스 하나
+├────────┬────────┬───────┬───────┤
+│ TCP    │ UDS    │ WinPipe│  ← 백엔드만 교체
+│ (공통) │ (Unix) │ (Win)  │
+└────────┴────────┴────────┘
+```
+
+**설계 원칙:**
+- 프로토콜 계층과 전송 계층의 완전 분리
+- 대용량 데이터는 메시지에 직접 담지 않고 참조 전달 (`context_ref` 패턴)
+- 최대 페이로드 권장 1MB — 초과 시 파일/shared memory 경로를 params에 전달
+- `connect()` 팩토리 함수로 OS에 맞는 최적 백엔드 자동 선택 (예정)
+
+**Transport 백엔드 목록:**
+
+| 백엔드 | 플랫폼 | 용도 | 상태 |
+|--------|--------|------|------|
+| TcpTransport | 전체 | 범용, 부모-자식 포함 | 구현 완료 |
+| UdsTransport | Unix/macOS | 네이티브 성능 (~20us) | 구현 완료 |
+| WinPipeTransport | Windows | 네이티브 성능 | 구현 완료 (Windows 테스트 필요) |
+| FileTransport | 전체 | 디버깅/로깅 보조 (JSONL) | 구현 완료 |
+
+**TcpTransport (Frame Profile)** — 현재 `SocketTransport`
+- `127.0.0.1:port` 바인딩, `port=0`이면 OS 자동 할당
+- 서버 1개 + 클라이언트 N개
+- frame_encode/frame_decode로 메시지 경계 보존
+- 크로스플랫폼, 동일 머신 전용
 
 **FileTransport (JSONL Profile)**
 - 경로: `<base_dir>/peers/<peer>/from_<sender>.jsonl`
 - append-only, writer 1명/파일
 - base path는 설정값 (하드코딩 금지)
 - 읽기 위치 추적은 구현 정의 (byte offset)
-- macOS/Linux 전용 (fcntl 사용)
-
-**SocketTransport (Frame Profile)**
-- 경로: `<base_dir>/zep.sock` (Unix Domain Socket)
-- 서버 1개 + 클라이언트 N개
-- frame_encode/frame_decode로 메시지 경계 보존
-- 동일 머신 전용, 지연 ~20us
+- 크로스플랫폼 파일 잠금 (Unix: fcntl, Windows: msvcrt)
 
 ### 예약 메서드 (구현 완료)
 
@@ -222,7 +256,7 @@ Peer._verify_routing()에서 3가지 검증 (from, to, session).
 ```bash
 cd zep-py
 source .venv/bin/activate    # 또는 python3 -m venv .venv && pip install -e .
-python -m tests              # 30 tests, ~0.7초
+python -m tests              # 36 tests, ~1.2초
 ```
 
 개별 실행:
@@ -230,7 +264,9 @@ python -m tests              # 30 tests, ~0.7초
 python -m tests.test_conformance       # conformance 38개
 python -m tests.test_roundtrip         # peer 왕복 6개
 python -m tests.test_scenario          # 시나리오 4개
-python -m tests.test_socket_transport  # 소켓 8개
+python -m tests.test_tcp_transport     # TCP 소켓 8개
+python -m tests.test_uds_transport    # UDS 소켓 3개 (Unix/macOS)
+python -m tests.test_connect_factory  # 팩토리 3개
 python -m tests.test_peer_advanced     # 예약 메서드 6개
 python -m tests.test_agent             # 에이전트 6개
 ```

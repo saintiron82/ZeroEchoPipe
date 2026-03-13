@@ -1,9 +1,27 @@
 """ZEP file transport — sender-split inbox, JSONL profile."""
 
 import os
-import fcntl
+import sys
 from pathlib import Path
 from .base import BaseTransport
+
+if sys.platform == "win32":
+    import msvcrt
+
+    def _lock(f):
+        msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
+
+    def _unlock(f):
+        f.seek(0)
+        msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+else:
+    import fcntl
+
+    def _lock(f):
+        fcntl.flock(f, fcntl.LOCK_EX)
+
+    def _unlock(f):
+        fcntl.flock(f, fcntl.LOCK_UN)
 
 
 class FileTransport(BaseTransport):
@@ -21,11 +39,11 @@ class FileTransport(BaseTransport):
             data = data.encode("utf-8")
 
         with open(inbox_file, "ab") as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
+            _lock(f)
             f.write(data)
             f.flush()
             os.fsync(f.fileno())
-            fcntl.flock(f, fcntl.LOCK_UN)
+            _unlock(f)
 
     def recv(self, peer_name, limit=100):
         """Read new messages from all inbox files for peer."""

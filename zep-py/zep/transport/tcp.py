@@ -1,16 +1,15 @@
-"""ZEP socket transport — Unix Domain Socket with Frame Profile.
+"""ZEP TCP transport — TCP localhost with Frame Profile.
 
 Frame Profile: 4-byte big-endian length prefix + JSON payload.
 Per spec section 4.3: same-machine only, ~20us latency.
+Uses TCP 127.0.0.1 for cross-platform compatibility.
 """
 
 import json
-import os
 import socket
 import selectors
 import struct
 import threading
-from pathlib import Path
 from .base import BaseTransport
 
 _HEADER_SIZE = 4
@@ -47,19 +46,20 @@ def frame_decode(data):
     return payload.decode("utf-8"), data[total:]
 
 
-class SocketTransport(BaseTransport):
-    """Unix Domain Socket transport using Frame Profile.
+class TcpTransport(BaseTransport):
+    """TCP localhost transport using Frame Profile.
 
     One peer acts as server (bind), others connect as clients.
     Messages are routed by 'to' field in the envelope.
     """
 
-    def __init__(self, sock_path, is_server=False):
-        self._sock_path = str(sock_path)
+    def __init__(self, port, host="127.0.0.1", is_server=False):
+        self._host = host
+        self._port = port
         self._is_server = is_server
         self._server_sock = None
         self._connections = {}       # peer_name -> socket
-        self._buffers = {}           # peer_name -> bytes (recv buffer)
+        self._buffers = {}           # buf_key -> bytes (recv buffer)
         self._inbox = {}             # peer_name -> [message_str, ...]
         self._lock = threading.Lock()
         self._selector = selectors.DefaultSelector()
@@ -70,12 +70,17 @@ class SocketTransport(BaseTransport):
         if is_server:
             self._start_server()
 
+    @property
+    def port(self):
+        """Actual port the server is listening on (useful when port=0)."""
+        if self._server_sock:
+            return self._server_sock.getsockname()[1]
+        return self._port
+
     def _start_server(self):
-        if os.path.exists(self._sock_path):
-            os.unlink(self._sock_path)
-        self._server_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self._server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._server_sock.bind(self._sock_path)
+        self._server_sock.bind((self._host, self._port))
         self._server_sock.listen(8)
         self._server_sock.setblocking(False)
         self._selector.register(self._server_sock, selectors.EVENT_READ)
@@ -100,7 +105,7 @@ class SocketTransport(BaseTransport):
     def _read_from(self, conn, data):
         try:
             chunk = conn.recv(65536)
-        except (ConnectionResetError, BrokenPipeError):
+        except (ConnectionResetError, BrokenPipeError, OSError):
             self._remove_connection(conn)
             return
         if not chunk:
@@ -108,13 +113,6 @@ class SocketTransport(BaseTransport):
             return
 
         with self._lock:
-            # Find which peer this connection belongs to
-            peer = None
-            for name, sock in self._connections.items():
-                if sock is conn:
-                    peer = name
-                    break
-
             buf_key = id(conn)
             self._buffers.setdefault(buf_key, b"")
             self._buffers[buf_key] += chunk
@@ -152,18 +150,17 @@ class SocketTransport(BaseTransport):
             self._buffers.pop(id(conn), None)
 
     def _ensure_connected(self, to_peer=None):
-        """Client: connect to server socket if not already connected."""
+        """Client: connect to server if not already connected."""
         if self._is_server:
             return
         if not hasattr(self, "_client_sock") or self._client_sock is None:
-            self._client_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self._client_sock.connect(self._sock_path)
+            self._client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self._client_sock.connect((self._host, self._port))
             self._recv_buffer = b""
 
     def send(self, to_peer, from_peer, data):
         """Send framed message via socket."""
         if isinstance(data, str):
-            # For socket transport, strip LF from JSONL profile
             payload = data.rstrip("\n")
         else:
             payload = data.decode("utf-8").rstrip("\n") if isinstance(data, bytes) else data
@@ -185,12 +182,10 @@ class SocketTransport(BaseTransport):
     def recv(self, peer_name, limit=100):
         """Receive messages for peer_name."""
         if self._is_server:
-            # Server: messages are already in inbox from io_loop
             with self._lock:
                 msgs = self._inbox.pop(peer_name, [])
             return msgs[:limit]
         else:
-            # Client: read from socket directly
             self._ensure_connected()
             self._client_sock.setblocking(False)
             messages = []
@@ -236,8 +231,6 @@ class SocketTransport(BaseTransport):
                 pass
             self._client_sock = None
         self._selector.close()
-        if self._is_server and os.path.exists(self._sock_path):
-            os.unlink(self._sock_path)
         self._connections.clear()
         self._buffers.clear()
         self._inbox.clear()
