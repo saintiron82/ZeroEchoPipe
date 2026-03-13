@@ -1,7 +1,10 @@
 """ZEP transport backends.
 
-All backends share the same BaseTransport interface (send, recv, close)
-and use the same Frame Profile wire format.
+PipeTransport is the primary transport — Named Pipe (FIFO), no server,
+no client, no ports. Just a path.
+
+FileTransport is the cross-platform fallback (disk-based).
+TcpTransport/UdsTransport are available for special cases.
 """
 
 import sys
@@ -15,32 +18,29 @@ __all__ = [
     "connect",
 ]
 
-# Platform-specific imports
+if sys.platform != "win32":
+    from .pipe import PipeTransport
+    __all__.append("PipeTransport")
+
 if sys.platform == "win32":
-    from .winpipe import WinPipeTransport
-    __all__.append("WinPipeTransport")
+    # Windows: FileTransport as default (Named Pipe via ctypes planned)
+    pass
 else:
     from .uds import UdsTransport
     __all__.append("UdsTransport")
 
 
-def connect(address, is_server=False):
+def connect(base_dir):
     """Create the best available transport for the current platform.
 
     Args:
-        address: Transport-specific address.
-            - int: TCP port (0 = auto-assign)
-            - str ending with '.sock': Unix Domain Socket path (Unix/macOS)
-            - str: Named Pipe name (Windows)
-        is_server: Whether this side acts as server.
+        base_dir: Directory path for pipe/file communication.
+            All peers sharing this path can communicate.
 
     Returns:
-        A BaseTransport instance.
+        A BaseTransport instance. No server, no client, no ports.
     """
-    if isinstance(address, int):
-        return TcpTransport(address, is_server=is_server)
-
     if sys.platform == "win32":
-        return WinPipeTransport(address, is_server=is_server)
+        return FileTransport(base_dir)
     else:
-        return UdsTransport(address, is_server=is_server)
+        return PipeTransport(base_dir)

@@ -2,7 +2,7 @@
 
 **프로그램 간 경량 통신 프로토콜** | Schema `zep.v0.1`
 
-C++, Python, C#가 동일한 메시지를 읽고 쓰며, call-response 왕복을 동일하게 처리하는 최소 프로토콜.
+서버 없음. 클라이언트 없음. 포트 없음. 경로 하나면 통신 시작.
 
 ## 설치
 
@@ -12,54 +12,50 @@ pip install zep-protocol
 
 ## 빠른 시작
 
-### 두 에이전트가 대화하기
+### 두 프로세스가 대화하기
 
 ```python
-from zep import BaseAgent, method, on_event, FileTransport
+# process_a.py — engine
+from zep import BaseAgent, method, connect
 
-class MyAgent(BaseAgent):
-    @method("greet")
-    def handle_greet(self, params):
-        return {"reply": f"Hello, {params['name']}!"}
+class Engine(BaseAgent):
+    @method("get_status")
+    def handle_status(self, params):
+        return {"health": 100, "level": params.get("level", 1)}
 
-    @on_event("notify")
-    def handle_notify(self, params):
-        print(f"Got: {params['message']}")
-
-# 서버 에이전트
-transport = FileTransport("/tmp/zep-bus")
-agent = MyAgent("myagent", transport, session="demo")
-agent.run()  # 블로킹
+transport = connect("/tmp/zep-bus")
+engine = Engine("engine", transport, session="game01")
+engine.run()  # 블로킹, 메시지 대기
 ```
 
 ```python
-# 클라이언트
-from zep import BaseAgent, FileTransport
+# process_b.py — agent
+from zep import BaseAgent, connect
 
-transport = FileTransport("/tmp/zep-bus")
-client = BaseAgent("client", transport, session="demo")
-client.run(blocking=False)
-
-result = client.call("myagent", "greet", {"name": "World"})
-print(result)  # {"reply": "Hello, World!"}
-
-client.emit("myagent", "notify", {"message": "ping"})
-```
-
-### 소켓 전송 (저지연)
-
-```python
-from zep import BaseAgent, SocketTransport
-
-# 서버
-server_transport = SocketTransport("/tmp/zep.sock", is_server=True)
-agent = MyAgent("myagent", server_transport, session="demo")
+transport = connect("/tmp/zep-bus")
+agent = BaseAgent("agent", transport, session="game01")
 agent.run(blocking=False)
 
-# 클라이언트
-client_transport = SocketTransport("/tmp/zep.sock", is_server=False)
-client = BaseAgent("client", client_transport, session="demo")
-result = client.call("myagent", "greet", {"name": "World"})
+result = agent.call("engine", "get_status", {"level": 5})
+print(result)  # {"health": 100, "level": 5}
+
+agent.emit("engine", "notify", {"message": "ping"})
+```
+
+양쪽 다 `connect("/tmp/zep-bus")` — 그게 전부입니다.
+
+### 저수준 Peer 사용
+
+```python
+from zep import Peer, connect
+
+transport = connect("/tmp/zep-bus")
+peer = Peer(transport, "myapp", session="s1")
+peer.bind("echo", lambda params: params)
+
+# poll loop
+while True:
+    peer.poll_once()
 ```
 
 ## 메시지 타입
@@ -76,7 +72,7 @@ result = client.call("myagent", "greet", {"name": "World"})
 | Profile | 용도 | 형식 |
 |---------|------|------|
 | JSONL | 파일 전송, 디버깅 | UTF-8 compact JSON + LF |
-| Frame | 소켓 전송 | 4바이트 big-endian 길이 + JSON |
+| Frame | Pipe/소켓 전송 | 4바이트 big-endian 길이 + JSON |
 
 ## 예약 메서드
 
@@ -98,8 +94,8 @@ ZeroEchoPipe/
     │   ├── message.py    # parse, validate, serialize
     │   ├── peer.py       # Peer (call, emit, poll, reserved methods)
     │   ├── agent.py      # BaseAgent + @method + @on_event
-    │   └── transport/    # FileTransport, SocketTransport
-    └── tests/            # 30개 테스트
+    │   └── transport/    # PipeTransport (메인), FileTransport (폴백)
+    └── tests/            # 38개 테스트
 ```
 
 ## 테스트
@@ -112,7 +108,7 @@ python -m tests
 ```
 
 ```
-Ran 30 tests in 0.735s
+Ran 38 tests in 1.328s
 OK
 ```
 
@@ -121,6 +117,7 @@ OK
 - [x] 프로토콜 명세 v0.1
 - [x] Conformance Test Suite (38개 + 시나리오 4개)
 - [x] Python SDK (Message + Peer + Transport + Agent)
+- [ ] Windows Named Pipe 지원
 - [ ] C++ SDK
 - [ ] C# SDK
 - [ ] Cross-language Roundtrip
