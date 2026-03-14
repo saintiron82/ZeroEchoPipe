@@ -68,9 +68,16 @@ class WinPipeTransport(BaseTransport):
                     break
 
     def _read_from(self, pipe):
+        import time as _time
         buf = b""
         while self._running:
             try:
+                # Non-blocking: PeekNamedPipe first to avoid holding the handle
+                # while another thread calls WriteFile (same handle, causes ERROR_NO_DATA)
+                _, avail, _ = win32pipe.PeekNamedPipe(pipe, 0)
+                if avail == 0:
+                    _time.sleep(0.001)
+                    continue
                 hr, data = win32file.ReadFile(pipe, 65536)
                 if not data:
                     break
